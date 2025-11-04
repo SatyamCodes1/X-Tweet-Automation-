@@ -2,13 +2,13 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    # News every 2 hours (UTC)
+    # ✅ Post 1 news every 2 hours (UTC)
     - cron: "0 */2 * * *"
-    # Trends at 12:00, 16:00, 20:00 IST → 06:30, 10:30, 14:30 UTC
+    # ✅ Trends at 12:00, 16:00, 20:00 IST → 06:30, 10:30, 14:30 UTC
     - cron: "30 6 * * *"
     - cron: "30 10 * * *"
     - cron: "30 14 * * *"
-    # Cache news twice/day (06:30 IST = 01:00 UTC, 18:30 IST = 13:00 UTC)
+    # ✅ Cache news twice per day
     - cron: "0 1 * * *"
     - cron: "0 13 * * *"
   workflow_dispatch:
@@ -28,12 +28,11 @@ jobs:
       - name: ✅ Install dependencies
         run: pip install -r requirements.txt
 
-      # --- Trends windows (India via Google Trends; 1 post/run)
-      - name: 🚀 Google Trends (India)
+      # ------------------ Trends Posting ------------------
+      - name: 🚀 Post Google Trends (India)
         if: "contains(github.event.schedule, '30 6') || contains(github.event.schedule, '30 10') || contains(github.event.schedule, '30 14')"
-        run: python -m src.run
+        run: python -m src.run trend_window
         env:
-          TRIGGER: trend_window
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
@@ -41,34 +40,30 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          DEFAULT_COUNTRY: "in"
           USE_MEMES: "true"
+          TEST_MODE: "false"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
-          TRENDS_PER_WINDOW: "1"
           DAILY_TWEET_LIMIT: "15"
           MONTHLY_TWEET_LIMIT: "450"
-          TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # --- Cache news (2/day) ---
-      - name: 🗞 Cache latest news
+      # ------------------ Cache News ------------------
+      - name: 🗞 Cache Latest News
         if: "contains(github.event.schedule, '0 1') || contains(github.event.schedule, '0 13')"
-        run: python -m src.run
+        run: python -m src.run cache_news
         env:
-          TRIGGER: cache_news
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           DEFAULT_COUNTRY: "in"
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # --- News batch every 2 hours (1 tweet/run) ---
-      - name: 🐦 Post one News Tweet (every 2h)
+      # ------------------ Post News Every 2h ------------------
+      - name: 🐦 Post One News Tweet (every 2h)
         if: "contains(github.event.schedule, '0 */2')"
-        run: python -m src.run
+        run: python -m src.run news_batch
         env:
-          TRIGGER: news_batch
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
