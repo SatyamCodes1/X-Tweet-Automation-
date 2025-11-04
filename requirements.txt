@@ -1,0 +1,11 @@
+requests==2.32.3
+python-dotenv==1.0.1
+tweepy==4.14.0
+pillow==10.4.0
+groq==0.11.0
+huggingface_hub==0.24.6
+sqlite-utils==3.37
+pytrends==4.9.2
+feedparser==6.0.11
+
+
