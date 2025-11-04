@@ -28,100 +28,10 @@ jobs:
       - name: ✅ Install dependencies
         run: pip install -r requirements.txt
 
-      # --- Credential validation ---
-      - name: 🔐 Verify Credentials
-        run: |
-          python - <<EOF
-import os
-import sys
-
-print('=' * 60)
-print('🔐 CREDENTIAL VALIDATION')
-print('=' * 60)
-
-required_keys = {
-    'X_API_KEY': os.getenv('X_API_KEY'),
-    'X_API_SECRET': os.getenv('X_API_SECRET'),
-    'X_ACCESS_TOKEN': os.getenv('X_ACCESS_TOKEN'),
-    'X_ACCESS_SECRET': os.getenv('X_ACCESS_SECRET'),
-    'GROQ_API_KEY': os.getenv('GROQ_API_KEY'),
-    'GNEWS_API_KEY': os.getenv('GNEWS_API_KEY'),
-    'NEWSAPI_KEY': os.getenv('NEWSAPI_KEY'),
-}
-all_valid = True
-for key, value in required_keys.items():
-    if not value:
-        print(f'❌ MISSING: {key}')
-        all_valid = False
-    else:
-        masked = value[:4] + '...' + value[-4:] if len(value) > 8 else '***'
-        print(f'✅ {key}: Present ({len(value)} chars) - {masked}')
-print('=' * 60)
-if all_valid:
-    print('✅ All credentials validated successfully')
-else:
-    print('❌ Some credentials are missing!')
-    sys.exit(1)
-EOF
-        env:
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-
-      - name: 🔍 Debug Environment
-        run: |
-          python - <<EOF
-import os
-print('=' * 60)
-print('🔍 ENVIRONMENT VARIABLES')
-print('=' * 60)
-env_vars = {
-    'TRIGGER': os.getenv('TRIGGER', 'NOT SET'),
-    'DEFAULT_COUNTRY': os.getenv('DEFAULT_COUNTRY', 'NOT SET'),
-    'USE_MEMES': os.getenv('USE_MEMES', 'NOT SET'),
-    'HASHTAGS_ENABLED': os.getenv('HASHTAGS_ENABLED', 'NOT SET'),
-    'HASHTAGS_MAX': os.getenv('HASHTAGS_MAX', 'NOT SET'),
-    'TRENDS_PER_WINDOW': os.getenv('TRENDS_PER_WINDOW', 'NOT SET'),
-    'DAILY_TWEET_LIMIT': os.getenv('DAILY_TWEET_LIMIT', 'NOT SET'),
-    'MONTHLY_TWEET_LIMIT': os.getenv('MONTHLY_TWEET_LIMIT', 'NOT SET'),
-    'TEST_MODE': os.getenv('TEST_MODE', 'NOT SET'),
-    'LOG_FILE': os.getenv('LOG_FILE', 'NOT SET'),
-}
-for key, value in env_vars.items():
-    print(f'{key}: {value}')
-print('=' * 60)
-print(f'Current Working Directory: {os.getcwd()}')
-import sys
-print(f'Python Version: {sys.version}')
-EOF
-        env:
-          TRIGGER: ${{ env.TRIGGER }}
-          DEFAULT_COUNTRY: ${{ env.DEFAULT_COUNTRY }}
-          USE_MEMES: ${{ env.USE_MEMES }}
-          HASHTAGS_ENABLED: ${{ env.HASHTAGS_ENABLED }}
-          HASHTAGS_MAX: ${{ env.HASHTAGS_MAX }}
-          TRENDS_PER_WINDOW: ${{ env.TRENDS_PER_WINDOW }}
-          DAILY_TWEET_LIMIT: ${{ env.DAILY_TWEET_LIMIT }}
-          MONTHLY_TWEET_LIMIT: ${{ env.MONTHLY_TWEET_LIMIT }}
-          TEST_MODE: ${{ env.TEST_MODE }}
-          LOG_FILE: ${{ env.LOG_FILE }}
-
+      # --- Trends windows (India via Google Trends; 1 post/run)
       - name: 🚀 Google Trends (India)
-        if: ${{ contains(github.event.schedule, '30 6') || contains(github.event.schedule, '30 10') || contains(github.event.schedule, '30 14') || github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "🚀 Starting Google Trends trigger..."
-          python -m src.run 2>&1 | tee -a bot.log
-          EXIT_CODE=$?
-          echo "Exit Code: $EXIT_CODE"
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "❌ Process failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
-          echo "✅ Process completed successfully"
+        if: "contains(github.event.schedule, '30 6') || contains(github.event.schedule, '30 10') || contains(github.event.schedule, '30 14')"
+        run: python -m src.run
         env:
           TRIGGER: trend_window
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -141,18 +51,10 @@ EOF
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
+      # --- Cache news (2/day) ---
       - name: 🗞 Cache latest news
-        if: ${{ contains(github.event.schedule, '0 1') || contains(github.event.schedule, '0 13') || github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "🗞 Starting cache news trigger..."
-          python -m src.run 2>&1 | tee -a bot.log
-          EXIT_CODE=$?
-          echo "Exit Code: $EXIT_CODE"
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "❌ Process failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
-          echo "✅ Process completed successfully"
+        if: "contains(github.event.schedule, '0 1') || contains(github.event.schedule, '0 13')"
+        run: python -m src.run
         env:
           TRIGGER: cache_news
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
@@ -161,18 +63,10 @@ EOF
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
+      # --- News batch every 2 hours (1 tweet/run) ---
       - name: 🐦 Post one News Tweet (every 2h)
-        if: ${{ contains(github.event.schedule, '0 */2') || github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "🐦 Starting news batch trigger..."
-          python -m src.run 2>&1 | tee -a bot.log
-          EXIT_CODE=$?
-          echo "Exit Code: $EXIT_CODE"
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "❌ Process failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
-          echo "✅ Process completed successfully"
+        if: "contains(github.event.schedule, '0 */2')"
+        run: python -m src.run
         env:
           TRIGGER: news_batch
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -187,62 +81,3 @@ EOF
           MONTHLY_TWEET_LIMIT: "450"
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
-
-      - name: 📋 Display bot logs
-        if: always()
-        run: |
-          printf '=%.0s' {1..60}
-          echo
-          echo "📋 BOT LOGS CONTENTS"
-          printf '=%.0s' {1..60}
-          echo
-          if [ -f bot.log ]; then
-            cat bot.log
-          else
-            echo "❌ bot.log file not found"
-          fi
-          printf '=%.0s' {1..60}
-          echo
-
-      - name: 📦 Upload logs artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bot-logs-${{ github.run_id }}
-          path: bot.log
-          retention-days: 30
-
-      - name: 🐍 Capture Python errors
-        if: always()
-        run: |
-          echo "Checking for error files..."
-          if [ -d "errors" ]; then
-            echo "Error directory found:"
-            ls -la errors/
-          else
-            echo "No error directory found"
-          fi
-          if [ -f "debug.log" ]; then
-            echo "Debug log found:"
-            cat debug.log
-          fi
-
-      - name: ✨ Workflow Summary
-        if: always()
-        run: |
-          printf '=%.0s' {1..60}
-          echo
-          echo "✨ WORKFLOW EXECUTION SUMMARY"
-          printf '=%.0s' {1..60}
-          echo
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Run ID: ${{ github.run_id }}"
-          echo "Run Number: ${{ github.run_number }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Trigger: ${{ env.TRIGGER }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          printf '=%.0s' {1..60}
-          echo
