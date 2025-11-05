@@ -44,7 +44,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          USE_MEMES: "true"
+          USE_MEMES: "false"
           TEST_MODE: "false"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
@@ -86,7 +86,7 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          USE_MEMES: "true"
+          USE_MEMES: "false"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
           DAILY_TWEET_LIMIT: "15"
