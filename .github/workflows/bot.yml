@@ -43,7 +43,7 @@ jobs:
       # ------------------ Trends Posting ------------------
       - name: 🚀 Post Google Trends (India)
         if: "contains(github.event.schedule, '30 6') || contains(github.event.schedule, '30 10') || contains(github.event.schedule, '30 14')"
-        run: python -m src.run trend_window
+        run: python -m src.run TRIGGER=trend_window
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -63,7 +63,7 @@ jobs:
       # ------------------ Cache News ------------------
       - name: 🗞 Cache Latest News
         if: "contains(github.event.schedule, '30 0') || contains(github.event.schedule, '30 4') || contains(github.event.schedule, '30 8') || contains(github.event.schedule, '30 11') || contains(github.event.schedule, '30 14')"
-        run: python -m src.run cache_news
+        run: python -m src.run TRIGGER=cache_news
         env:
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
@@ -84,7 +84,7 @@ jobs:
                github.event.schedule == '0 4')
         run: |
           # ✅ Post 1 news tweet by default
-          python -m src.run news_batch
+          python -m src.run TRIGGER=news_batch
 
           # ✅ Post 2nd tweet at 4PM, 6PM, and 8PM IST
           if [[ "${{ github.event.schedule }}" == "30 10 * * *" ]] || \
