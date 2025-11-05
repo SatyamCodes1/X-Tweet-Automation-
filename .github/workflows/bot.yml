@@ -2,7 +2,7 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    # ✅ Post 1 news every 2 hours (UTC) — logic inside will block 10PM–4AM IST
+    # ✅ Post 1 news every 2 hours (UTC)
     - cron: "0 */2 * * *"
 
     # ✅ Google Trends at 12PM, 4PM, 8PM IST → 06:30, 10:30, 14:30 UTC
@@ -11,12 +11,6 @@ on:
     - cron: "30 14 * * *"
 
     # ✅ Cache News at 6AM, 10AM, 2PM, 5PM, 8PM IST
-    # Converted to UTC:
-    # 06:00 IST → 00:30 UTC
-    # 10:00 IST → 04:30 UTC
-    # 14:00 IST → 08:30 UTC
-    # 17:00 IST → 11:30 UTC
-    # 20:00 IST → 14:30 UTC
     - cron: "30 0 * * *"
     - cron: "30 4 * * *"
     - cron: "30 8 * * *"
@@ -49,7 +43,6 @@ jobs:
           
           echo "Current UTC time: $HOUR:$MINUTE"
           
-          # Determine which task to run based on time
           TRIGGER="none"
           
           # Google Trends: 06:30, 10:30, 14:30 UTC
@@ -63,13 +56,12 @@ jobs:
           elif [[ ("$HOUR" == "00" && "$MINUTE" == "30") || \
                   ("$HOUR" == "04" && "$MINUTE" == "30") || \
                   ("$HOUR" == "08" && "$MINUTE" == "30") || \
-                  ("$HOUR" == "11" && "$MINUTE" == "30") || \
-                  ("$HOUR" == "14" && "$MINUTE" == "30") ]]; then
+                  ("$HOUR" == "11" && "$MINUTE" == "30") ]] && [[ "$MINUTE" == "30" ]]; then
             TRIGGER="cache_news"
             echo "trigger=cache_news" >> $GITHUB_OUTPUT
             
-          # Post News: Every 2 hours except 22:00-04:00 UTC (10PM-4AM IST)
-          elif [[ $((HOUR % 2)) == 0 ]] && [[ ! ("$HOUR" -ge 22 || "$HOUR" -lt 4) ]]; then
+          # Post News: Every 2 hours except 22:00-03:59 UTC (10PM-4AM IST)
+          elif [[ $((HOUR % 2)) == 0 ]] && [[ $HOUR -lt 22 && $HOUR -ge 4 ]]; then
             TRIGGER="news_batch"
             echo "trigger=news_batch" >> $GITHUB_OUTPUT
           fi
@@ -82,7 +74,8 @@ jobs:
         run: |
           echo "🚀 Starting Google Trends posting..."
           python -m src.run TRIGGER=trend_window
-          echo "✅ Google Trends posting completed"
+          EXIT_CODE=$?
+          echo "Exit code: $EXIT_CODE"
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -105,7 +98,8 @@ jobs:
         run: |
           echo "🗞️ Starting news cache..."
           python -m src.run TRIGGER=cache_news
-          echo "✅ News cache completed"
+          EXIT_CODE=$?
+          echo "Exit code: $EXIT_CODE"
         env:
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
@@ -119,13 +113,8 @@ jobs:
         run: |
           echo "🐦 Starting news tweet posting..."
           python -m src.run TRIGGER=news_batch
-          echo "✅ News tweet posting completed"
-          
-          # Check if log file exists and show last 20 lines
-          if [ -f "bot.log" ]; then
-            echo "📋 Bot log (last 20 lines):"
-            tail -20 bot.log
-          fi
+          EXIT_CODE=$?
+          echo "Exit code: $EXIT_CODE"
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -140,30 +129,22 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ========== ERROR LOGGING & DEBUGGING ==========
-      - name: 📋 Check for errors
+      # ========== SHOW RESULTS ==========
+      - name: 📋 Show execution results
         if: always()
         run: |
-          echo "=== Workflow Status Check ==="
+          echo "=== Execution Results ==="
           echo "Trigger: ${{ steps.trigger.outputs.trigger }}"
           
-          # Show bot.log if it exists
           if [ -f "bot.log" ]; then
             echo ""
-            echo "=== Full Bot Log ==="
+            echo "=== Bot Log Output ==="
             cat bot.log
           else
-            echo "⚠️ No bot.log file found"
-          fi
-          
-          # Check if any tweets were actually posted
-          if grep -q "Tweet posted successfully\|successfully posted\|tweet_id" bot.log 2>/dev/null; then
-            echo "✅ Tweets were posted successfully"
-          else
-            echo "❌ WARNING: No successful tweet posts detected in logs"
+            echo "⚠️ No bot.log file found (code didn't run)"
           fi
 
-      # ========== UPLOAD LOGS AS ARTIFACT ==========
+      # ========== UPLOAD LOGS ==========
       - name: 📦 Upload logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -171,45 +152,3 @@ jobs:
           name: bot-logs-${{ github.run_number }}
           path: bot.log
           retention-days: 7
-
-      # ========== VALIDATE TWITTER CREDENTIALS ==========
-      - name: 🔐 Validate Twitter API Credentials
-        if: failure()
-        run: |
-          echo "⚠️ Workflow failed. Checking credentials..."
-          
-          if [ -z "$X_API_KEY" ]; then
-            echo "❌ X_API_KEY is not set"
-          else
-            echo "✅ X_API_KEY is set"
-          fi
-          
-          if [ -z "$X_API_SECRET" ]; then
-            echo "❌ X_API_SECRET is not set"
-          else
-            echo "✅ X_API_SECRET is set"
-          fi
-          
-          if [ -z "$X_ACCESS_TOKEN" ]; then
-            echo "❌ X_ACCESS_TOKEN is not set"
-          else
-            echo "✅ X_ACCESS_TOKEN is set"
-          fi
-          
-          if [ -z "$X_ACCESS_SECRET" ]; then
-            echo "❌ X_ACCESS_SECRET is not set"
-          else
-            echo "✅ X_ACCESS_SECRET is set"
-          fi
-          
-          if [ -z "$GROQ_API_KEY" ]; then
-            echo "❌ GROQ_API_KEY is not set"
-          else
-            echo "✅ GROQ_API_KEY is set"
-          fi
-        env:
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
