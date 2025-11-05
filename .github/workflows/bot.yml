@@ -2,26 +2,21 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    # ✅ Post 1 news every 2 hours (UTC)
-    - cron: "0 */2 * * *"
-
-    # ✅ Google Trends at 12PM, 4PM, 8PM IST → 06:30, 10:30, 14:30 UTC
-    - cron: "30 6 * * *"
-    - cron: "30 10 * * *"
-    - cron: "30 14 * * *"
-
-    # ✅ Cache News at 6AM, 10AM, 2PM, 5PM, 8PM IST
-    - cron: "30 0 * * *"
-    - cron: "30 4 * * *"
-    - cron: "30 8 * * *"
-    - cron: "30 11 * * *"
-    - cron: "30 14 * * *"
-
-  workflow_dispatch:
+    - cron: "0 */2 * * *"      # Every 2 hours (UTC) → News
+    - cron: "30 6 * * *"       # 12PM IST → Trends
+    - cron: "30 10 * * *"      # 4PM IST → Trends
+    - cron: "30 14 * * *"      # 8PM IST → Trends
+    - cron: "30 0 * * *"       # Cache 6AM IST
+    - cron: "30 4 * * *"       # Cache 10AM IST
+    - cron: "30 8 * * *"       # Cache 2PM IST
+    - cron: "30 11 * * *"      # Cache 5PM IST
+    - cron: "30 14 * * *"      # Cache 8PM IST
+  workflow_dispatch:            # ✅ Allow manual run
 
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
       - name: ✅ Checkout repo
         uses: actions/checkout@v4
@@ -34,48 +29,13 @@ jobs:
       - name: ✅ Install dependencies
         run: pip install -r requirements.txt
 
-      # ========== DETERMINE TRIGGER TYPE ==========
-      - name: 🔍 Determine trigger type
-        id: trigger
-        run: |
-          HOUR=$(date -u +%H)
-          MINUTE=$(date -u +%M)
-          
-          echo "Current UTC time: $HOUR:$MINUTE"
-          
-          TRIGGER="none"
-          
-          # Google Trends: 06:30, 10:30, 14:30 UTC
-          if [[ ("$HOUR" == "06" && "$MINUTE" == "30") || \
-                ("$HOUR" == "10" && "$MINUTE" == "30") || \
-                ("$HOUR" == "14" && "$MINUTE" == "30") ]]; then
-            TRIGGER="trend_window"
-            echo "trigger=trend_window" >> $GITHUB_OUTPUT
-            
-          # Cache News: 00:30, 04:30, 08:30, 11:30, 14:30 UTC
-          elif [[ ("$HOUR" == "00" && "$MINUTE" == "30") || \
-                  ("$HOUR" == "04" && "$MINUTE" == "30") || \
-                  ("$HOUR" == "08" && "$MINUTE" == "30") || \
-                  ("$HOUR" == "11" && "$MINUTE" == "30") ]] && [[ "$MINUTE" == "30" ]]; then
-            TRIGGER="cache_news"
-            echo "trigger=cache_news" >> $GITHUB_OUTPUT
-            
-          # Post News: Every 2 hours except 22:00-03:59 UTC (10PM-4AM IST)
-          elif [[ $((HOUR % 2)) == 0 ]] && [[ $HOUR -lt 22 && $HOUR -ge 4 ]]; then
-            TRIGGER="news_batch"
-            echo "trigger=news_batch" >> $GITHUB_OUTPUT
-          fi
-          
-          echo "Selected trigger: $TRIGGER"
-
-      # ========== POST GOOGLE TRENDS ==========
+      # ✅ Trends Posting
       - name: 🚀 Post Google Trends (India)
-        if: steps.trigger.outputs.trigger == 'trend_window'
-        run: |
-          echo "🚀 Starting Google Trends posting..."
-          python -m src.run TRIGGER=trend_window
-          EXIT_CODE=$?
-          echo "Exit code: $EXIT_CODE"
+        if: github.event_name == 'schedule' && 
+            (github.event.schedule == '30 6 * * *' ||
+             github.event.schedule == '30 10 * * *' ||
+             github.event.schedule == '30 14 * * *')
+        run: python -m src.run trend_window
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -92,14 +52,15 @@ jobs:
           MONTHLY_TWEET_LIMIT: "450"
           LOG_FILE: "bot.log"
 
-      # ========== CACHE NEWS ==========
-      - name: 🗞️ Cache Latest News
-        if: steps.trigger.outputs.trigger == 'cache_news'
-        run: |
-          echo "🗞️ Starting news cache..."
-          python -m src.run TRIGGER=cache_news
-          EXIT_CODE=$?
-          echo "Exit code: $EXIT_CODE"
+      # ✅ Cache News
+      - name: 🗞 Cache Latest News
+        if: github.event_name == 'schedule' &&
+            (github.event.schedule == '30 0 * * *' ||
+             github.event.schedule == '30 4 * * *' ||
+             github.event.schedule == '30 8 * * *' ||
+             github.event.schedule == '30 11 * * *' ||
+             github.event.schedule == '30 14 * * *')
+        run: python -m src.run cache_news
         env:
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
@@ -107,14 +68,18 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ========== POST NEWS TWEETS ==========
+      # ✅ News Posting (auto + extra at 4PM, 6PM, 8PM IST)
       - name: 🐦 Post News Tweets
-        if: steps.trigger.outputs.trigger == 'news_batch'
+        if: github.event_name == 'schedule' && contains(github.event.schedule, '0 */2')
         run: |
-          echo "🐦 Starting news tweet posting..."
-          python -m src.run TRIGGER=news_batch
-          EXIT_CODE=$?
-          echo "Exit code: $EXIT_CODE"
+          python -m src.run news_batch
+          
+          # Extra tweet at 4PM, 6PM, 8PM IST
+          if [[ "${{ github.event.schedule }}" == "30 10 * * *" ]] || \
+             [[ "${{ github.event.schedule }}" == "30 12 * * *" ]] || \
+             [[ "${{ github.event.schedule }}" == "30 14 * * *" ]]; then
+            python -m src.run news_batch
+          fi
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -129,26 +94,10 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ========== SHOW RESULTS ==========
-      - name: 📋 Show execution results
+      # ✅ Upload bot.log
+      - name: 📁 Upload bot.log file
         if: always()
-        run: |
-          echo "=== Execution Results ==="
-          echo "Trigger: ${{ steps.trigger.outputs.trigger }}"
-          
-          if [ -f "bot.log" ]; then
-            echo ""
-            echo "=== Bot Log Output ==="
-            cat bot.log
-          else
-            echo "⚠️ No bot.log file found (code didn't run)"
-          fi
-
-      # ========== UPLOAD LOGS ==========
-      - name: 📦 Upload logs
-        if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: bot-logs-${{ github.run_number }}
+          name: bot-log
           path: bot.log
-          retention-days: 7
