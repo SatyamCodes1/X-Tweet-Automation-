@@ -2,15 +2,27 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    # News every 2 hours (UTC)
+    # ✅ Post 1 news every 2 hours (UTC) — logic inside will block 10PM–4AM IST
     - cron: "0 */2 * * *"
-    # Trends at 12:00, 16:00, 20:00 IST → 06:30, 10:30, 14:30 UTC
+
+    # ✅ Google Trends at 12PM, 4PM, 8PM IST → 06:30, 10:30, 14:30 UTC
     - cron: "30 6 * * *"
     - cron: "30 10 * * *"
     - cron: "30 14 * * *"
-    # Cache news twice/day (06:30 IST = 01:00 UTC, 18:30 IST = 13:00 UTC)
-    - cron: "0 1 * * *"
-    - cron: "0 13 * * *"
+
+    # ✅ Cache News at 6AM, 10AM, 2PM, 5PM, 8PM IST
+    # Converted to UTC:
+    # 06:00 → 00:30 UTC
+    # 10:00 → 04:30 UTC
+    # 14:00 → 08:30 UTC
+    # 17:00 → 11:30 UTC
+    # 20:00 → 14:30 UTC
+    - cron: "30 0 * * *"
+    - cron: "30 4 * * *"
+    - cron: "30 8 * * *"
+    - cron: "30 11 * * *"
+    - cron: "30 14 * * *"
+
   workflow_dispatch:
 
 jobs:
@@ -28,12 +40,11 @@ jobs:
       - name: ✅ Install dependencies
         run: pip install -r requirements.txt
 
-      # --- Trends windows (India via Google Trends; 1 post/run)
-      - name: 🚀 Google Trends (India)
+      # ------------------ Trends Posting ------------------
+      - name: 🚀 Post Google Trends (India)
         if: "contains(github.event.schedule, '30 6') || contains(github.event.schedule, '30 10') || contains(github.event.schedule, '30 14')"
-        run: python -m src.run
+        run: python -m src.run trend_window
         env:
-          TRIGGER: trend_window
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
@@ -41,34 +52,47 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          DEFAULT_COUNTRY: "in"
           USE_MEMES: "true"
+          TEST_MODE: "false"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
-          TRENDS_PER_WINDOW: "1"
           DAILY_TWEET_LIMIT: "15"
           MONTHLY_TWEET_LIMIT: "450"
-          TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # --- Cache news (2/day) ---
-      - name: 🗞 Cache latest news
-        if: "contains(github.event.schedule, '0 1') || contains(github.event.schedule, '0 13')"
-        run: python -m src.run
+      # ------------------ Cache News ------------------
+      - name: 🗞 Cache Latest News
+        if: "contains(github.event.schedule, '30 0') || contains(github.event.schedule, '30 4') || contains(github.event.schedule, '30 8') || contains(github.event.schedule, '30 11') || contains(github.event.schedule, '30 14')"
+        run: python -m src.run cache_news
         env:
-          TRIGGER: cache_news
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           DEFAULT_COUNTRY: "in"
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # --- News batch every 2 hours (1 tweet/run) ---
-      - name: 🐦 Post one News Tweet (every 2h)
-        if: "contains(github.event.schedule, '0 */2')"
-        run: python -m src.run
+      # ------------------ Post News (with extra tweets at 4PM, 6PM, 8PM IST) ------------------
+      - name: 🐦 Post News Tweets
+        if: >
+          contains(github.event.schedule, '0 */2')
+          && !(github.event.schedule == '30 22' ||
+               github.event.schedule == '30 23' ||
+               github.event.schedule == '0 0'   ||
+               github.event.schedule == '0 1'   ||
+               github.event.schedule == '0 2'   ||
+               github.event.schedule == '0 3'   ||
+               github.event.schedule == '0 4')
+        run: |
+          # ✅ Post 1 news tweet by default
+          python -m src.run news_batch
+
+          # ✅ Post 2nd tweet at 4PM, 6PM, and 8PM IST
+          if [[ "${{ github.event.schedule }}" == "30 10 * * *" ]] || \
+             [[ "${{ github.event.schedule }}" == "30 12 * * *" ]] || \
+             [[ "${{ github.event.schedule }}" == "30 14 * * *" ]]; then
+            python -m src.run news_batch
+          fi
         env:
-          TRIGGER: news_batch
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
