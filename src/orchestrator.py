@@ -155,18 +155,16 @@ def run_news_post_batch(count=1):
         if posted >= count:
             break
 
-        # 1️⃣ Merge title + description
+        # 1️⃣ Raw news text (English from GNews/NewsAPI)
         raw = f"{title} — {desc}" if desc else title or ""
 
-        # 2️⃣ Translate to Hindi (ensures no English-only tweets)
-        translated = translate_to_hindi(raw)
+        # 2️⃣ ✅ Let make_tweet() handle translation + content generation
+        tweet_text = make_tweet(raw, mode="funny", add_hashtags_from=raw)
 
-        # 3️⃣ Generate savage 4–5 line tweet from llm.py
-        tweet_text = make_tweet(translated, mode="funny", add_hashtags_from=translated)
-
-        # 4️⃣ Post final tweet (meme/text)
+        # 3️⃣ ✅ Post final tweet (Hindi + 3–4 line savage format)
         ok = post_one_tweet(tweet_text, source=source, url=url, use_meme=False, con=con)
+
         if ok or CONFIG["testing"]["test_mode"]:
             posted += 1
 
-    log.info(f"✅ {posted} ट्वीट पोस्ट हो गए (या simulate)")
+    log.info(f"✅ {posted} ट्वीट पोस्ट हो गए ✅")
