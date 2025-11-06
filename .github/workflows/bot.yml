@@ -2,16 +2,16 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    - cron: "0 */2 * * *"        # Every 2 hours → News
-    - cron: "30 6 * * *"         # Google Trends (12 PM IST)
-    - cron: "30 10 * * *"        # Google Trends (4 PM IST)
-    - cron: "30 14 * * *"        # Google Trends (8 PM IST)
-    - cron: "30 0 * * *"         # Cache 6 AM IST
-    - cron: "30 4 * * *"         # Cache 10 AM IST
-    - cron: "30 8 * * *"         # Cache 2 PM IST
-    - cron: "30 11 * * *"        # Cache 5 PM IST
-    - cron: "30 14 * * *"        # Cache 8 PM IST
-  workflow_dispatch:             # ✅ Manual trigger
+    - cron: "0 */2 * * *"        # ✅ Every 2 hours → Post News (Hindi)
+    - cron: "30 6 * * *"         # ✅ Google Trends (12 PM IST)
+    - cron: "30 10 * * *"        # ✅ Google Trends (4 PM IST)
+    - cron: "30 14 * * *"        # ✅ Google Trends (8 PM IST)
+    - cron: "30 0 * * *"         # ✅ Cache 6 AM IST
+    - cron: "30 4 * * *"         # ✅ Cache 10 AM IST
+    - cron: "30 8 * * *"         # ✅ Cache 2 PM IST
+    - cron: "30 11 * * *"        # ✅ Cache 5 PM IST
+    - cron: "30 14 * * *"        # ✅ Cache 8 PM IST
+  workflow_dispatch:             # ✅ Manual trigger (button)
 
 jobs:
   run:
@@ -29,7 +29,17 @@ jobs:
       - name: ✅ Install Dependencies
         run: pip install -r requirements.txt
 
-      # ---------------- Google Trends Posting ----------------
+      # ✅ Always cache news before posting (solves empty DB issue)
+      - name: 🗞 Cache News First (Fresh data for Hindi tweets)
+        run: python -m src.run TRIGGER=cache_news
+        env:
+          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          DEFAULT_COUNTRY: "in"
+          TEST_MODE: "false"
+          LOG_FILE: "bot.log"
+
+      # ✅ Scheduled Google Trends in Hindi
       - name: 🚀 Post Google Trends (Hindi)
         if: github.event_name == 'schedule' &&
             (github.event.schedule == '30 6 * * *' ||
@@ -42,30 +52,12 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           TEST_MODE: "false"
           USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ---------------- Cache News ----------------
-      - name: 🗞 Cache Latest News
-        if: github.event_name == 'schedule' &&
-            (github.event.schedule == '30 0 * * *' ||
-             github.event.schedule == '30 4 * * *' ||
-             github.event.schedule == '30 8 * * *' ||
-             github.event.schedule == '30 11 * * *' ||
-             github.event.schedule == '30 14 * * *')
-        run: python -m src.run TRIGGER=cache_news
-        env:
-          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          DEFAULT_COUNTRY: "in"
-          TEST_MODE: "false"
-          LOG_FILE: "bot.log"
-
-      # ---------------- Post News Tweets ----------------
-      - name: 🐦 Post News Tweets (Hindi)
+      # ✅ Scheduled News Posting (Hindi only)
+      - name: 🐦 Post Hindi News Tweets (Scheduled)
         if: github.event_name == 'schedule' && github.event.schedule == '0 */2 * * *'
         run: python -m src.run TRIGGER=news_batch
         env:
@@ -78,10 +70,12 @@ jobs:
           USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Manual workflow runs Hindi news tweets by default
-      - name: ▶ Manual Trigger → Post Hindi News
+      # ✅ Manual Trigger (Run Workflow button) → Hindi News
+      - name: ▶ Manual Run → Hindi News Tweet
         if: github.event_name == 'workflow_dispatch'
-        run: python -m src.run TRIGGER=news_batch
+        run: |
+          echo "📌 Manual Hindi Tweet Triggered"
+          python -m src.run TRIGGER=news_batch
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -92,7 +86,8 @@ jobs:
           USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      - name: 📁 Upload log
+      # ✅ Upload bot.log for debugging
+      - name: 📁 Upload Logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
