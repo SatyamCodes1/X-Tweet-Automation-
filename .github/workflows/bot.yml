@@ -25,17 +25,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
 
-      # ✅ NEW: Clear Python cache to fix Groq version issue
-      - name: 🧹 Clear Python Cache
+      # ✅ NEW: Force reinstall Groq to ensure 0.11.0
+      - name: 🔧 Force Reinstall Groq 0.11.0
         run: |
-          rm -rf ~/.cache/pip
-          find . -type d -name __pycache__ -exec rm -rf {} + || true
-          find . -type f -name "*.pyc" -delete || true
+          pip install --upgrade pip
+          pip uninstall -y groq || true
+          pip install --no-cache-dir groq==0.11.0
+          python -c "import groq; print(f'✅ Groq version installed: {groq.__version__}')"
 
-      # ✅ UPDATED: Install with no-cache-dir
+      # ✅ Install remaining dependencies
       - name: ✅ Install Dependencies
         run: pip install --no-cache-dir -r requirements.txt
+
+      # ✅ Verify Groq installation
+      - name: 🔍 Verify Groq Version
+        run: |
+          python -c "import groq; print(f'Groq version: {groq.__version__}')"
+          python -c "from groq import Groq; print('Groq import successful')"
 
       # ✅ ✅ ✅ DELETE OLD DATABASE ONLY WHEN MANUALLY TRIGGERED
       - name: 🗑 Delete old database (for clean Hindi testing)
