@@ -242,38 +242,58 @@ def generate_multiline_post(core: str, mode: str) -> str:
     style = style_map.get(mode, FUNNY_STYLE_HI)
 
     system = (
-        "You are a SAVAGE Gen-Z Hindi tweet writer.\n"
-        "\n🎯 OUTPUT FORMAT (EXACT):\n"
-        "Line 1 (8-12 words): Concrete observation with comparison\n"
-        "Line 2 (8-12 words): X कर रहा है, Y सो रहा है + ONE emoji (😭😤😅🤡💀)\n"
-        "Line 3 (8-12 words): Consequence or ironic detail\n"
-        "Line 4 (8-12 words): Sharp closing question or demand\n"
-        "\n✨ MUST COPY THIS STYLE:\n"
-        "चांद पर मिशन और धरती पर गड्ढे\n"
-        "ISRO launch कर रहा है, नगर निगम सो रहा है 😭\n"
-        "Budget से याद आया –\n"
-        "पहले सड़क ठीक कर दो फिर रॉकेट उड़ाना!\n"
-        "\n🚫 RULES:\n"
-        "- Each line MAX 12 words\n"
-        "- MUST use 'X कर रहा है, Y सो रहा है' pattern in Line 2\n"
+        "You are a SAVAGE Gen-Z Hindi tweet writer who writes SHARP, CONCRETE, SARCASTIC news commentary.\n"
+        "\n🎯 OUTPUT FORMAT:\n"
+        "Line 1: Concrete, specific observation (NOT generic) — use numbers, facts, or vivid comparison\n"
+        "Line 2: 'X कर रहा है, Y सो रहा है' pattern + emoji (😭😤😅🤡💀👑)\n"
+        "Line 3: CONCRETE consequence or ironic reality with specific details\n"
+        "Line 4: SHARP sarcastic question or savage closing\n"
+        "\n✨ EXAMPLES (COPY THIS ENERGY):\n"
+        "\nExample 1:\n"
+        "परमाणु बम और परमाणु परीक्षण की धमकी — दोनों खतरनाक\n"
+        "ट्रंप nuclear test कर रहा है, UN सो रहा है 😤\n"
+        "Global हथियारों की दौड़ फिर से शुरू हो गई\n"
+        "क्या शांति की उम्मीद करना मूर्खता है?\n"
+        "\nExample 2:\n"
+        "चांद पर मिशन — धरती पर गड्ढे\n"
+        "ISRO mission launch कर रहा है, roads भर गए हैं 😭\n"
+        "Budget सब space program में जा रहा है\n"
+        "पहले सड़क ठीक कर दो फिर रॉकेट उड़ा!\n"
+        "\nExample 3:\n"
+        "Delhi में AQI 400+ — ये जहर का त्यौहार है\n"
+        "Government बोले mask लगा लो, pollution कम नहीं कर रहा 😅\n"
+        "Schools बंद हैं, doctors busy हैं\n"
+        "क्या ये 'development' है या 'suffocation'?\n"
+        "\n🚫 CRITICAL RULES:\n"
+        "- Line 1: ALWAYS specific (numbers, names, concrete details) — NO generic statements\n"
+        "- Line 2: MUST follow 'X कर रहा है, Y सो रहा है' — exact pattern\n"
+        "- Line 3: CONCRETE consequence — वास्तविक प्रभाव या तुरंत observable reality\n"
+        "- Line 4: SAVAGE sarcasm — rhetorical question or sharp demand\n"
+        "- Each line 8-12 words MAX\n"
+        "- Use simple, PUNCHY Hindi + few English (government, launch, mission, budget, nuclear, test)\n"
         "- Exactly ONE emoji in Line 2\n"
-        "- Simple Hindi + few English words (system, budget, court, government)\n"
-        "- NO long explanations, NO complex sentences\n"
-        "- Sharp, witty, relatable\n"
+        "- SARCASM > Philosophy\n"
+        "- CONCRETE > Generic\n"
+        "- RELATABLE > Formal\n"
     )
 
     user_prompt = (
         f"{style}\n\n"
-        f"📰 NEWS:\n{core}\n\n"
-        f"अब इस topic पर ऊपर दिए गए EXACT STYLE में 4 lines लिखो:\n"
-        f"• Line 1: Concrete comparison (8-12 words)\n"
-        f"• Line 2: 'X कर रहा है, Y सो रहा है' + emoji\n"
-        f"• Line 3: Ironic consequence (8-12 words)\n"
-        f"• Line 4: Sharp closing (8-12 words)\n"
-        f"\nसिर्फ 4 lines, हर line छोटी और sharp!"
+        f"📰 NEWS/TOPIC:\n{core}\n\n"
+        f"अब इस topic पर ऊपर दिए गए EXAMPLES की तरह 4 CONCRETE, SARCASTIC lines लिखो:\n"
+        f"\n1️⃣ Line 1: Specific observation (numbers/facts/vivid detail)\n"
+        f"2️⃣ Line 2: 'X कर रहा है, Y सो रहा है' + ONE emoji\n"
+        f"3️⃣ Line 3: Concrete consequence (real ground reality)\n"
+        f"4️⃣ Line 4: Savage sarcastic question/demand\n"
+        f"\n⚠️ RULES:\n"
+        f"- NEVER be generic or philosophical\n"
+        f"- ALWAYS use specific details (numbers, names, facts)\n"
+        f"- Each line 8-12 words\n"
+        f"- SARCASM is KEY\n"
+        f"- सिर्फ 4 lines, कोई extra commentary नहीं"
     )
 
-    out = call_groq(user_prompt, system, temperature=0.75, max_tokens=200)  # ← Reduced temp and tokens
+    out = call_groq(user_prompt, system, temperature=0.70, max_tokens=180)
     if not out:
         return core
 
@@ -288,16 +308,16 @@ def generate_multiline_post(core: str, mode: str) -> str:
 
     # Sanitize
     text = _strip_forbidden(text)
-    text = _limit_words_per_line(text, max_words=12)  # ← Stricter limit
+    text = _limit_words_per_line(text, max_words=12)
     text = _enforce_line_count(text, min_lines=3, max_lines=4)
     text = _limit_emojis(text, max_emoji=2)
     text = normalize_numbers(detox(text))
     
-    # ✅ Ensure at least one emoji exists
+    # ✅ Ensure at least one emoji exists in line 2
     if _emoji_count(text) == 0:
         lines = text.split("\n")
         if len(lines) >= 2:
-            lines[1] = lines[1] + " 😤"  # Add emoji to line 2
+            lines[1] = lines[1] + " 😤"
         text = "\n".join(lines)
     
     return text
