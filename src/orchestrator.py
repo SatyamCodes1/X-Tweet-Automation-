@@ -155,15 +155,14 @@ def run_news_post_batch(count=1):
         if posted >= count:
             break
 
-        # 1️⃣ Raw news text (English from GNews/NewsAPI)
+        # ✅ Always use English raw to let LLM translate + format properly
         raw = f"{title} — {desc}" if desc else title or ""
 
-        # 2️⃣ ✅ Let make_tweet() handle translation + content generation
-        tweet_text = make_tweet(raw, mode="funny", add_hashtags_from=raw)
+        # ✅ Force Hindi + 3–4 line Gen-Z tweet (NO direct posting of English)
+        tweet_text = make_tweet(topic=raw, mode="funny", add_hashtags_from=None)
 
-        # 3️⃣ ✅ Post final tweet (Hindi + 3–4 line savage format)
+        # ✅ Post only the final Hindi tweet
         ok = post_one_tweet(tweet_text, source=source, url=url, use_meme=False, con=con)
-
         if ok or CONFIG["testing"]["test_mode"]:
             posted += 1
 
