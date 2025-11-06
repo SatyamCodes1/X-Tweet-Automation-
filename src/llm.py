@@ -1,4 +1,4 @@
-# ✅ src/llm.py — Gen-Z Hinglish Multi-line Tweet Generator (Improved + Meaningful)
+# ✅ src/llm.py — Gen-Z Hinglish Multi-line Tweet Generator (Groq 0.11.0 Compatible)
 # Output style:
 # "लाइन 1
 #  लाइन 2
@@ -118,12 +118,22 @@ def normalize_numbers(text: str) -> str:
     return text
 
 
-# ---------------------- GROQ CALLER -------------------------
+# ---------------------- GROQ CALLER (Groq 0.11.0 Compatible) -------------------------
 def _groq_client():
+    """
+    ✅ Groq 0.11.0 Compatible Client
+    - No 'proxies' parameter (removed in 0.11.0)
+    - Use environment variables for proxy if needed:
+      export HTTP_PROXY=http://proxy:8080
+      export HTTPS_PROXY=https://proxy:8080
+    """
     return Groq(api_key=CONFIG["llm"]["groq_api_key"])
 
 
 def call_groq(prompt: str, system: str = None, temperature: float = 0.85, max_tokens: int = 300) -> str:
+    """
+    ✅ Groq 0.11.0 Compatible API Call
+    """
     try:
         client = _groq_client()
         msgs = []
