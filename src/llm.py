@@ -232,7 +232,6 @@ def _enforce_line_count(text: str, min_lines: int = 3, max_lines: int = 4) -> st
 def generate_multiline_post(core: str, mode: str) -> str:
     """
     Generate 3–4 MEANINGFUL lines with concrete contrasts, strong observations, and sarcasm.
-    Focus on: Concrete reality → Government action vs what's needed → Sharp observation
     """
     style_map = {
         "funny": FUNNY_STYLE_HI,
@@ -242,65 +241,64 @@ def generate_multiline_post(core: str, mode: str) -> str:
     style = style_map.get(mode, FUNNY_STYLE_HI)
 
     system = (
-        "You are a SAVAGE Gen-Z Hindi tweet writer who writes SHARP, CONCRETE, SARCASTIC news commentary.\n"
-        "\n🎯 OUTPUT FORMAT:\n"
-        "Line 1: Concrete, specific observation (NOT generic) — use numbers, facts, or vivid comparison\n"
-        "Line 2: 'X कर रहा है, Y सो रहा है' pattern + emoji (😭😤😅🤡💀👑)\n"
-        "Line 3: CONCRETE consequence or ironic reality with specific details\n"
-        "Line 4: SHARP sarcastic question or savage closing\n"
-        "\n✨ EXAMPLES (COPY THIS ENERGY):\n"
-        "\nExample 1:\n"
-        "परमाणु बम और परमाणु परीक्षण की धमकी — दोनों खतरनाक\n"
-        "ट्रंप nuclear test कर रहा है, UN सो रहा है 😤\n"
-        "Global हथियारों की दौड़ फिर से शुरू हो गई\n"
-        "क्या शांति की उम्मीद करना मूर्खता है?\n"
-        "\nExample 2:\n"
-        "चांद पर मिशन — धरती पर गड्ढे\n"
-        "ISRO mission launch कर रहा है, roads भर गए हैं 😭\n"
-        "Budget सब space program में जा रहा है\n"
-        "पहले सड़क ठीक कर दो फिर रॉकेट उड़ा!\n"
-        "\nExample 3:\n"
-        "Delhi में AQI 400+ — ये जहर का त्यौहार है\n"
-        "Government बोले mask लगा लो, pollution कम नहीं कर रहा 😅\n"
-        "Schools बंद हैं, doctors busy हैं\n"
-        "क्या ये 'development' है या 'suffocation'?\n"
-        "\n🚫 CRITICAL RULES:\n"
-        "- Line 1: ALWAYS specific (numbers, names, concrete details) — NO generic statements\n"
-        "- Line 2: MUST follow 'X कर रहा है, Y सो रहा है' — exact pattern\n"
-        "- Line 3: CONCRETE consequence — वास्तविक प्रभाव या तुरंत observable reality\n"
-        "- Line 4: SAVAGE sarcasm — rhetorical question or sharp demand\n"
-        "- Each line 8-12 words MAX\n"
-        "- Use simple, PUNCHY Hindi + few English (government, launch, mission, budget, nuclear, test)\n"
-        "- Exactly ONE emoji in Line 2\n"
-        "- SARCASM > Philosophy\n"
-        "- CONCRETE > Generic\n"
-        "- RELATABLE > Formal\n"
+        "You are a SAVAGE Gen-Z Hindi tweet writer. OUTPUT ONLY 4 LINES. NOTHING ELSE.\n"
+        "\n📋 EXACT FORMAT:\n"
+        "Line 1: [SPECIFIC FACT/OBSERVATION] — mention names, numbers, or concrete details\n"
+        "Line 2: [NAME] [ACTION] कर रहा है, [NAME/GROUP] [ACTION] नहीं कर रहा है 😤\n"
+        "Line 3: [REAL CONSEQUENCE] — what's actually happening on ground\n"
+        "Line 4: [SARCASTIC QUESTION] — rhetorical, sharp, relatable\n"
+        "\n✨ REAL EXAMPLES:\n"
+        "\n[EXAMPLE 1]:\n"
+        "Line 1: Twinkle Khanna Instagram पर सच्चाई बेच रही है\n"
+        "Line 2: Twinkle बोल रही है, Gen-Z सुन रहा है 😅\n"
+        "Line 3: पुरानी Hollywood बातें नई पीढ़ी को fake लगती हैं\n"
+        "Line 4: क्या stardom की बीमारी ही सच्चाई देखना भूल गई?\n"
+        "\n[EXAMPLE 2]:\n"
+        "Line 1: Bollywood stars को सच्चाई बताते डर लगता है\n"
+        "Line 2: Old actors interview दे रहे हैं, Gen-Z video बना रहा है 📱\n"
+        "Line 3: Social media पर fake narrative एक दिन में खत्म हो जाता है\n"
+        "Line 4: तो सच्चाई छिपाना अब पुरानी तरकीब है?\n"
+        "\n[EXAMPLE 3]:\n"
+        "Line 1: Twinkle को सच कहना महँगा पड़ता है\n"
+        "Line 2: Twinkle चुप है, Twitter खुलकर बोल रहा है 💀\n"
+        "Line 3: एक tweet से पूरी industry की पोल खुल गई\n"
+        "Line 4: अब celebrities को अपना reality check करना पड़ेगा?\n"
+        "\n🚫 NON-NEGOTIABLE RULES:\n"
+        "1. Line 1: ALWAYS mention SPECIFIC NAMES or CONCRETE FACTS (no generic statements)\n"
+        "2. Line 2: EXACT pattern: '[X] [verb] कर रहा है, [Y] [verb] नहीं कर रहा है' + emoji\n"
+        "3. Line 3: Real-world observable consequence (what's ACTUALLY happening)\n"
+        "4. Line 4: Sharp sarcastic question (rhetorical, biting)\n"
+        "5. MAX 12 words per line\n"
+        "6. Simple Hindi + English words (system, social media, video, reality, celebrity)\n"
+        "7. ONE emoji in Line 2 ONLY\n"
+        "8. NO 'philosophy', NO 'generic statements', NO 'long explanations'\n"
+        "9. OUTPUT ONLY 4 LINES — NO EXTRA TEXT\n"
+        "\n💪 TONE: Savage, witty, relatable Gen-Z energy. Sharp sarcasm > Formal critique."
     )
 
     user_prompt = (
-        f"{style}\n\n"
         f"📰 NEWS/TOPIC:\n{core}\n\n"
-        f"अब इस topic पर ऊपर दिए गए EXAMPLES की तरह 4 CONCRETE, SARCASTIC lines लिखो:\n"
-        f"\n1️⃣ Line 1: Specific observation (numbers/facts/vivid detail)\n"
-        f"2️⃣ Line 2: 'X कर रहा है, Y सो रहा है' + ONE emoji\n"
-        f"3️⃣ Line 3: Concrete consequence (real ground reality)\n"
-        f"4️⃣ Line 4: Savage sarcastic question/demand\n"
-        f"\n⚠️ RULES:\n"
-        f"- NEVER be generic or philosophical\n"
-        f"- ALWAYS use specific details (numbers, names, facts)\n"
-        f"- Each line 8-12 words\n"
-        f"- SARCASM is KEY\n"
-        f"- सिर्फ 4 lines, कोई extra commentary नहीं"
+        f"Write EXACTLY 4 lines (NO MORE) in this format:\n"
+        f"Line 1: [SPECIFIC FACT] — mention names/numbers\n"
+        f"Line 2: [NAME] कर रहा है, [NAME] नहीं कर रहा है 😤\n"
+        f"Line 3: [REAL CONSEQUENCE]\n"
+        f"Line 4: [SARCASTIC QUESTION]\n\n"
+        f"Example:\n"
+        f"Twinkle Khanna Instagram पर सच्चाई बेच रही है\n"
+        f"Twinkle बोल रही है, Gen-Z सुन रहा है 😅\n"
+        f"पुरानी Hollywood की बातें नई पीढ़ी को fake लगती हैं\n"
+        f"क्या stardom ने सच्चाई देखना ही भूल गया?\n\n"
+        f"Now write 4 lines for: {core}"
     )
 
-    out = call_groq(user_prompt, system, temperature=0.70, max_tokens=180)
+    out = call_groq(user_prompt, system, temperature=0.65, max_tokens=160)
     if not out:
         return core
 
     text = _clean_lines(out)
     
-    # If single paragraph, intelligently split
-    if "\n" not in text and len(text) > 100:
+    # If single paragraph, split by sentence markers
+    if "\n" not in text and len(text) > 80:
         parts = re.split(r'[।!\?]\s+', text)
         parts = [p.strip() for p in parts if p.strip()]
         if len(parts) >= 3:
@@ -313,11 +311,11 @@ def generate_multiline_post(core: str, mode: str) -> str:
     text = _limit_emojis(text, max_emoji=2)
     text = normalize_numbers(detox(text))
     
-    # ✅ Ensure at least one emoji exists in line 2
+    # ✅ Ensure emoji in Line 2
     if _emoji_count(text) == 0:
         lines = text.split("\n")
         if len(lines) >= 2:
-            lines[1] = lines[1] + " 😤"
+            lines[1] = lines[1].rstrip() + " 😤"
         text = "\n".join(lines)
     
     return text
