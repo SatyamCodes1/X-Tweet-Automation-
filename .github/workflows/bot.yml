@@ -26,8 +26,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      # ✅ NEW: Clear Python cache to fix Groq version issue
+      - name: 🧹 Clear Python Cache
+        run: |
+          rm -rf ~/.cache/pip
+          find . -type d -name __pycache__ -exec rm -rf {} + || true
+          find . -type f -name "*.pyc" -delete || true
+
+      # ✅ UPDATED: Install with no-cache-dir
       - name: ✅ Install Dependencies
-        run: pip install -r requirements.txt
+        run: pip install --no-cache-dir -r requirements.txt
 
       # ✅ ✅ ✅ DELETE OLD DATABASE ONLY WHEN MANUALLY TRIGGERED
       - name: 🗑 Delete old database (for clean Hindi testing)
