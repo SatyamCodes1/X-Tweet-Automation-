@@ -147,7 +147,7 @@ def run_news_post_batch(count=1):
     rows = select_uncached(con, limit=50)
 
     if not rows:
-        log.warning("⛔ कोई नई खबर उपलब्ध नहीं")
+        log.warning("⛔ कोई नई खबर उपलब्ध नहीं — पहले cache_news चलाओ")
         return
 
     posted = 0
@@ -155,12 +155,18 @@ def run_news_post_batch(count=1):
         if posted >= count:
             break
 
+        # 1️⃣ Merge title + description
         raw = f"{title} — {desc}" if desc else title or ""
-        raw_hi = translate_to_hindi(raw)   # ✅ Always convert to Hindi
-        tweet, use_meme, sensitive = _compose_for_topic(raw_hi)
 
-        ok = post_one_tweet(tweet, source=source, url=url, use_meme=use_meme, con=con)
+        # 2️⃣ Translate to Hindi (ensures no English-only tweets)
+        translated = translate_to_hindi(raw)
+
+        # 3️⃣ Generate savage 4–5 line tweet from llm.py
+        tweet_text = make_tweet(translated, mode="funny", add_hashtags_from=translated)
+
+        # 4️⃣ Post final tweet (meme/text)
+        ok = post_one_tweet(tweet_text, source=source, url=url, use_meme=False, con=con)
         if ok or CONFIG["testing"]["test_mode"]:
             posted += 1
 
-    log.info(f"✅ पूरा — {posted} खबर(ें) पोस्ट / सिम्युलेटेड हो गईं")
+    log.info(f"✅ {posted} ट्वीट पोस्ट हो गए (या simulate)")
