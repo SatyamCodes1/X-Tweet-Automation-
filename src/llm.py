@@ -242,49 +242,38 @@ def generate_multiline_post(core: str, mode: str) -> str:
     style = style_map.get(mode, FUNNY_STYLE_HI)
 
     system = (
-        "You are a SAVAGE Gen-Z Hindi tweet writer who writes MEANINGFUL, concrete news commentary with strong observations.\n"
-        "\n🎯 YOUR MISSION: Write exactly 3-4 lines that are CONCRETE + FUNNY + MEANINGFUL (not generic).\n"
-        "\n📋 MANDATORY STRUCTURE:\n"
-        "Line 1: CONCRETE OBSERVATION or COMPARISON (e.g., 'चांद पर मिशन और धरती पर गड्ढे' or 'हवा में जहर, फेफड़ों में धुआं')\n"
-        "Line 2: CONTRAST (X कर रहा है, Y सो रहा है OR Government claims vs reality) + emoji (😭😤😅🤡💀)\n"
-        "Line 3: CONSEQUENCE/IRONY with CONCRETE detail (number, example, या real-world impact)\n"
-        "Line 4: SHARP CLOSING (demand, sarcastic question, या powerful statement)\n"
-        "\n✨ EXAMPLES TO MATCH (VERY IMPORTANT):\n"
-        "Example 1:\n"
+        "You are a SAVAGE Gen-Z Hindi tweet writer.\n"
+        "\n🎯 OUTPUT FORMAT (EXACT):\n"
+        "Line 1 (8-12 words): Concrete observation with comparison\n"
+        "Line 2 (8-12 words): X कर रहा है, Y सो रहा है + ONE emoji (😭😤😅🤡💀)\n"
+        "Line 3 (8-12 words): Consequence or ironic detail\n"
+        "Line 4 (8-12 words): Sharp closing question or demand\n"
+        "\n✨ MUST COPY THIS STYLE:\n"
         "चांद पर मिशन और धरती पर गड्ढे\n"
         "ISRO launch कर रहा है, नगर निगम सो रहा है 😭\n"
         "Budget से याद आया –\n"
         "पहले सड़क ठीक कर दो फिर रॉकेट उड़ाना!\n"
-        "\n"
-        "Example 2:\n"
-        "हवा में जहर, फेफड़ों में धुआं\n"
-        "सरकार बोले mask लगा लो, pollution कंट्रोल करने की जिम्मेदारी भूल गए 😤\n"
-        "Delhi AQI 500+ और हम सब मास्क carnival चला रहे हैं\n"
-        "क्या ये development है या सिस्टम failure?\n"
-        "\n🚫 HARD RULES:\n"
-        "- CONCRETE: हमेशा specific numbers, examples, या ground reality दो (generic नहीं)\n"
-        "- CONTRAST: Line 2 में X vs Y का clear pattern रखो\n"
-        "- LANGUAGE: Hindi + few English words (ISRO, budget, mission, system, pollution, AQI, launch, action, reality)\n"
-        "- NO hashtags, NO @mentions, NO links\n"
-        "- EMOJI: Exactly 1-2, Line 2 या 3 में\n"
-        "- 3-4 lines only, NO extra commentary\n"
-        "- Each line meaningful, sarcastic, relatable, and CONCRETE\n"
-        "\n🎭 TONE: Savage, witty, sharp, philosophical sarcasm, ground reality + government failure contrast"
+        "\n🚫 RULES:\n"
+        "- Each line MAX 12 words\n"
+        "- MUST use 'X कर रहा है, Y सो रहा है' pattern in Line 2\n"
+        "- Exactly ONE emoji in Line 2\n"
+        "- Simple Hindi + few English words (system, budget, court, government)\n"
+        "- NO long explanations, NO complex sentences\n"
+        "- Sharp, witty, relatable\n"
     )
 
     user_prompt = (
         f"{style}\n\n"
-        f"📰 NEWS/TOPIC:\n{core}\n\n"
-        f"अब इस topic पर उपर दिए गए EXAMPLES की तरह 3-4 CONCRETE, MEANINGFUL lines लिखो।\n"
-        f"RULES:\n"
-        f"• Line 1: Concrete observation (specific, measurable)\n"
-        f"• Line 2: Clear X vs Y contrast + emoji\n"
-        f"• Line 3: Real consequence or ironic detail\n"
-        f"• Line 4: Sharp closing demand or sarcasm\n"
-        f"सिर्फ 3-4 lines लौटाओ, कुछ और नहीं। MEANINGFUL और CONCRETE होना चाहिए।"
+        f"📰 NEWS:\n{core}\n\n"
+        f"अब इस topic पर ऊपर दिए गए EXACT STYLE में 4 lines लिखो:\n"
+        f"• Line 1: Concrete comparison (8-12 words)\n"
+        f"• Line 2: 'X कर रहा है, Y सो रहा है' + emoji\n"
+        f"• Line 3: Ironic consequence (8-12 words)\n"
+        f"• Line 4: Sharp closing (8-12 words)\n"
+        f"\nसिर्फ 4 lines, हर line छोटी और sharp!"
     )
 
-    out = call_groq(user_prompt, system, temperature=0.90, max_tokens=270)
+    out = call_groq(user_prompt, system, temperature=0.75, max_tokens=200)  # ← Reduced temp and tokens
     if not out:
         return core
 
@@ -299,12 +288,19 @@ def generate_multiline_post(core: str, mode: str) -> str:
 
     # Sanitize
     text = _strip_forbidden(text)
-    text = _limit_words_per_line(text, max_words=18)
+    text = _limit_words_per_line(text, max_words=12)  # ← Stricter limit
     text = _enforce_line_count(text, min_lines=3, max_lines=4)
     text = _limit_emojis(text, max_emoji=2)
     text = normalize_numbers(detox(text))
+    
+    # ✅ Ensure at least one emoji exists
+    if _emoji_count(text) == 0:
+        lines = text.split("\n")
+        if len(lines) >= 2:
+            lines[1] = lines[1] + " 😤"  # Add emoji to line 2
+        text = "\n".join(lines)
+    
     return text
-
 
 # ---------------------- MAIN TWEET FUNCTION -------------------------
 def make_tweet(
