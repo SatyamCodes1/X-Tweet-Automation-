@@ -3,22 +3,22 @@ name: x-funny-news-bot
 on:
   schedule:
     - cron: "0 */2 * * *"        # Every 2 hours → News
-    - cron: "30 6 * * *"         # 12PM IST → Trends
-    - cron: "30 10 * * *"        # 4PM IST → Trends
-    - cron: "30 14 * * *"        # 8PM IST → Trends
-    - cron: "30 0 * * *"         # Cache 6AM IST
-    - cron: "30 4 * * *"         # Cache 10AM IST
-    - cron: "30 8 * * *"         # Cache 2PM IST
-    - cron: "30 11 * * *"        # Cache 5PM IST
-    - cron: "30 14 * * *"        # Cache 8PM IST
-  workflow_dispatch:             # ✅ Manual run enabled
+    - cron: "30 6 * * *"         # Google Trends (12 PM IST)
+    - cron: "30 10 * * *"        # Google Trends (4 PM IST)
+    - cron: "30 14 * * *"        # Google Trends (8 PM IST)
+    - cron: "30 0 * * *"         # Cache 6 AM IST
+    - cron: "30 4 * * *"         # Cache 10 AM IST
+    - cron: "30 8 * * *"         # Cache 2 PM IST
+    - cron: "30 11 * * *"        # Cache 5 PM IST
+    - cron: "30 14 * * *"        # Cache 8 PM IST
+  workflow_dispatch:             # ✅ Manual trigger
 
 jobs:
   run:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ✅ Checkout repo
+      - name: ✅ Checkout Repo
         uses: actions/checkout@v4
 
       - name: ✅ Setup Python
@@ -26,16 +26,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: ✅ Install dependencies
+      - name: ✅ Install Dependencies
         run: pip install -r requirements.txt
 
-      # ✅ GOOGLE TRENDS
-      - name: 🚀 Post Google Trends (India)
-        if: github.event_name == 'schedule' && 
+      # ---------------- Google Trends Posting ----------------
+      - name: 🚀 Post Google Trends (Hindi)
+        if: github.event_name == 'schedule' &&
             (github.event.schedule == '30 6 * * *' ||
              github.event.schedule == '30 10 * * *' ||
              github.event.schedule == '30 14 * * *')
-        run: python -m src.run trend_window
+        run: python -m src.run TRIGGER=trend_window
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
@@ -44,15 +44,11 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          USE_MEMES: "true"
           TEST_MODE: "false"
-          HASHTAGS_ENABLED: "true"
-          HASHTAGS_MAX: "2"
-          DAILY_TWEET_LIMIT: "15"
-          MONTHLY_TWEET_LIMIT: "450"
+          USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ CACHE NEWS
+      # ---------------- Cache News ----------------
       - name: 🗞 Cache Latest News
         if: github.event_name == 'schedule' &&
             (github.event.schedule == '30 0 * * *' ||
@@ -60,7 +56,7 @@ jobs:
              github.event.schedule == '30 8 * * *' ||
              github.event.schedule == '30 11 * * *' ||
              github.event.schedule == '30 14 * * *')
-        run: python -m src.run cache_news
+        run: python -m src.run TRIGGER=cache_news
         env:
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
@@ -68,32 +64,35 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ NEWS POSTING (Every 2 hours + Extra at 4PM/6PM/8PM IST)
-      - name: 🐦 Post News Tweets
+      # ---------------- Post News Tweets ----------------
+      - name: 🐦 Post News Tweets (Hindi)
         if: github.event_name == 'schedule' && github.event.schedule == '0 */2 * * *'
-        run: |
-          python -m src.run news_batch
-
-          # Extra tweets at 4PM, 6PM, 8PM IST
-          if [[ "$(date -u +%H)" == "10" || "$(date -u +%H)" == "12" || "$(date -u +%H)" == "14" ]]; then
-            python -m src.run news_batch
-          fi
+        run: python -m src.run TRIGGER=news_batch
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          USE_MEMES: "true"
-          HASHTAGS_ENABLED: "true"
-          HASHTAGS_MAX: "2"
-          DAILY_TWEET_LIMIT: "15"
-          MONTHLY_TWEET_LIMIT: "450"
           TEST_MODE: "false"
+          USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Always upload log file
-      - name: 📁 Upload bot.log file
+      # ✅ Manual workflow runs Hindi news tweets by default
+      - name: ▶ Manual Trigger → Post Hindi News
+        if: github.event_name == 'workflow_dispatch'
+        run: python -m src.run TRIGGER=news_batch
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TEST_MODE: "false"
+          USE_MEMES: "false"
+          LOG_FILE: "bot.log"
+
+      - name: 📁 Upload log
         if: always()
         uses: actions/upload-artifact@v4
         with:
