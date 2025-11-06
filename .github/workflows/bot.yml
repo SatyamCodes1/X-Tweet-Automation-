@@ -29,7 +29,12 @@ jobs:
       - name: ✅ Install Dependencies
         run: pip install -r requirements.txt
 
-      # ✅ Always cache news before posting (solves empty DB issue)
+      # ✅ ✅ ✅ DELETE OLD DATABASE ONLY WHEN MANUALLY TRIGGERED
+      - name: 🗑 Delete old database (for clean Hindi testing)
+        if: github.event_name == 'workflow_dispatch'
+        run: rm -f bot.sqlite3
+
+      # ✅ Always cache news first
       - name: 🗞 Cache News First (Fresh data for Hindi tweets)
         run: python -m src.run TRIGGER=cache_news
         env:
@@ -39,7 +44,7 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Scheduled Google Trends in Hindi
+      # ✅ Google Trends (Hindi)
       - name: 🚀 Post Google Trends (Hindi)
         if: github.event_name == 'schedule' &&
             (github.event.schedule == '30 6 * * *' ||
@@ -70,7 +75,7 @@ jobs:
           USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Manual Trigger (Run Workflow button) → Hindi News
+      # ✅ Manual Trigger → Hindi News
       - name: ▶ Manual Run → Hindi News Tweet
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -86,7 +91,7 @@ jobs:
           USE_MEMES: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Upload bot.log for debugging
+      # ✅ Upload bot.log
       - name: 📁 Upload Logs
         if: always()
         uses: actions/upload-artifact@v4
