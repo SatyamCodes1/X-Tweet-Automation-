@@ -156,7 +156,8 @@ def run_news_post_batch(count=1):
             break
 
         raw = f"{title} — {desc}" if desc else title or ""
-        tweet, use_meme, sensitive = _compose_for_topic(raw)
+        raw_hi = translate_to_hindi(raw)   # ✅ Always convert to Hindi
+        tweet, use_meme, sensitive = _compose_for_topic(raw_hi)
 
         ok = post_one_tweet(tweet, source=source, url=url, use_meme=use_meme, con=con)
         if ok or CONFIG["testing"]["test_mode"]:
