@@ -2,16 +2,16 @@ name: x-funny-news-bot
 
 on:
   schedule:
-    - cron: "0 */2 * * *"      # Every 2 hours (UTC) → News
-    - cron: "30 6 * * *"       # 12PM IST → Trends
-    - cron: "30 10 * * *"      # 4PM IST → Trends
-    - cron: "30 14 * * *"      # 8PM IST → Trends
-    - cron: "30 0 * * *"       # Cache 6AM IST
-    - cron: "30 4 * * *"       # Cache 10AM IST
-    - cron: "30 8 * * *"       # Cache 2PM IST
-    - cron: "30 11 * * *"      # Cache 5PM IST
-    - cron: "30 14 * * *"      # Cache 8PM IST
-  workflow_dispatch:            # ✅ Allow manual run
+    - cron: "0 */2 * * *"        # Every 2 hours → News
+    - cron: "30 6 * * *"         # 12PM IST → Trends
+    - cron: "30 10 * * *"        # 4PM IST → Trends
+    - cron: "30 14 * * *"        # 8PM IST → Trends
+    - cron: "30 0 * * *"         # Cache 6AM IST
+    - cron: "30 4 * * *"         # Cache 10AM IST
+    - cron: "30 8 * * *"         # Cache 2PM IST
+    - cron: "30 11 * * *"        # Cache 5PM IST
+    - cron: "30 14 * * *"        # Cache 8PM IST
+  workflow_dispatch:             # ✅ Manual run enabled
 
 jobs:
   run:
@@ -29,7 +29,7 @@ jobs:
       - name: ✅ Install dependencies
         run: pip install -r requirements.txt
 
-      # ✅ Trends Posting
+      # ✅ GOOGLE TRENDS
       - name: 🚀 Post Google Trends (India)
         if: github.event_name == 'schedule' && 
             (github.event.schedule == '30 6 * * *' ||
@@ -44,7 +44,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          USE_MEMES: "false"
+          USE_MEMES: "true"
           TEST_MODE: "false"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
@@ -52,7 +52,7 @@ jobs:
           MONTHLY_TWEET_LIMIT: "450"
           LOG_FILE: "bot.log"
 
-      # ✅ Cache News
+      # ✅ CACHE NEWS
       - name: 🗞 Cache Latest News
         if: github.event_name == 'schedule' &&
             (github.event.schedule == '30 0 * * *' ||
@@ -68,16 +68,14 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ News Posting (auto + extra at 4PM, 6PM, 8PM IST)
+      # ✅ NEWS POSTING (Every 2 hours + Extra at 4PM/6PM/8PM IST)
       - name: 🐦 Post News Tweets
-        if: github.event_name == 'schedule' && contains(github.event.schedule, '0 */2')
+        if: github.event_name == 'schedule' && github.event.schedule == '0 */2 * * *'
         run: |
           python -m src.run news_batch
-          
-          # Extra tweet at 4PM, 6PM, 8PM IST
-          if [[ "${{ github.event.schedule }}" == "30 10 * * *" ]] || \
-             [[ "${{ github.event.schedule }}" == "30 12 * * *" ]] || \
-             [[ "${{ github.event.schedule }}" == "30 14 * * *" ]]; then
+
+          # Extra tweets at 4PM, 6PM, 8PM IST
+          if [[ "$(date -u +%H)" == "10" || "$(date -u +%H)" == "12" || "$(date -u +%H)" == "14" ]]; then
             python -m src.run news_batch
           fi
         env:
@@ -86,7 +84,7 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          USE_MEMES: "false"
+          USE_MEMES: "true"
           HASHTAGS_ENABLED: "true"
           HASHTAGS_MAX: "2"
           DAILY_TWEET_LIMIT: "15"
@@ -94,7 +92,7 @@ jobs:
           TEST_MODE: "false"
           LOG_FILE: "bot.log"
 
-      # ✅ Upload bot.log
+      # ✅ Always upload log file
       - name: 📁 Upload bot.log file
         if: always()
         uses: actions/upload-artifact@v4
