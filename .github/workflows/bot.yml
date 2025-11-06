@@ -28,12 +28,12 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      # ✅ NEW: Force reinstall Groq to ensure 0.11.0
-      - name: 🔧 Force Reinstall Groq 0.11.0
+      # ✅ NEW: Force reinstall Groq to ensure 0.33.0
+      - name: 🔧 Force Reinstall Groq 0.33.0
         run: |
           pip install --upgrade pip
           pip uninstall -y groq || true
-          pip install --no-cache-dir groq==0.11.0
+          pip install --no-cache-dir groq==0.33.0
           python -c "import groq; print(f'✅ Groq version installed: {groq.__version__}')"
 
       # ✅ Install remaining dependencies
