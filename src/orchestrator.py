@@ -1,5 +1,3 @@
-# ✅ FINAL orchestrator.py — 1 Tweet Per Run + Satire + Hindi + Safe Posting
-
 from datetime import datetime, timedelta, timezone
 import feedparser
 
@@ -9,6 +7,10 @@ from .utils import mkhash, clean_topic, get_logger, is_sensitive
 from .llm import make_tweet, translate_to_hindi
 from .meme import make_meme
 from .poster import post_text, post_text_with_media
+
+# ✅ You missed these ↓
+from .sources.gnews import fetch_gnews
+from .sources.newsapi import fetch_newsapi
 
 log = get_logger()
 
