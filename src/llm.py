@@ -231,7 +231,7 @@ def _enforce_line_count(text: str, min_lines: int = 3, max_lines: int = 4) -> st
 # ---------------------- IMPROVED MULTI-LINE POST GENERATION -------------------------
 def generate_multiline_post(core: str, mode: str) -> str:
     """
-    Generate 3–4 MEANINGFUL lines with concrete contrasts, strong observations, and sarcasm.
+    Generate 3–4 meaningful lines with concrete contrasts, strong observations, and sarcasm.
     """
     style_map = {
         "funny": FUNNY_STYLE_HI,
@@ -240,54 +240,60 @@ def generate_multiline_post(core: str, mode: str) -> str:
     }
     style = style_map.get(mode, FUNNY_STYLE_HI)
 
+    # ✅ UPDATED PROMPT – more logical, no broken Hindi, no exaggeration, no hashtags
     system = (
-        "You are a SAVAGE Gen-Z Hindi tweet writer. OUTPUT ONLY 4 LINES. NO EXPLANATION.\n"
-        "\n📌 MANDATORY STRUCTURE:\n"
-        "Line 1: Specific fact — real names, numbers, events (no generic).\n"
-        "Line 2: Contrast with EXACT pattern — '[X] कर रहा है, [Y] नहीं कर रहा है 😤'. Must relate to Line 1.\n"
-        "Line 3: Real consequence or ground impact — public reaction, loss, numbers, disappointment.\n"
-        "Line 4: Sharp sarcastic question — must logically follow Lines 1–3.\n"
-        "\n🚫 BANNED:\n"
-        "- No generic lines like 'लोग परेशान हैं' or 'सवाल उठ रहे हैं'.\n"
-        "- No random emotion shifts or incomplete thoughts.\n"
-        "- No hashtags, @mentions, links.\n"
-        "- No poetic/philosophical gyaan.\n"
-        "- Only one emoji (😤) allowed in Line 2.\n"
+        "You are a savage but logical Gen-Z Hindi tweet writer. Output ONLY 4 LINES. No explanations.\n"
+        "\n📌 STRICT FORMAT:\n"
+        "Line 1: Specific fact — real name, number or event (no generic).\n"
+        "Line 2: MUST follow exact pattern — '[X] कर रहा है, [Y] नहीं कर रहा है 😤'.\n"
+        "        X and Y must be related to Line 1. Use complete verbs like 'कर रहा है/नहीं कर रहा है'.\n"
+        "Line 3: Real consequence or ground impact (public reaction, data, decision, loss). No exaggeration.\n"
+        "Line 4: Sharp sarcastic question — must logically follow from Lines 1–3.\n"
+        "\n🚫 DO NOT:\n"
+        "- No hashtags, @mentions, or links inside the 4 lines.\n"
+        "- No broken verbs like 'नहीं कर'. Must be 'नहीं कर रहा है / नहीं कर रही है'.\n"
+        "- No fake claims like 'citizenship snatched', 'democracy dead'. Keep it real.\n"
+        "- No philosophical or poetic lines — only concrete and relatable.\n"
+        "- Only ONE emoji allowed 😤 and ONLY in Line 2.\n"
         "- Max 12 words per line.\n"
-        "\n✅ GOOD EXAMPLE:\n"
-        "दी कॉक ने 98 रन ठोके, इंडिया पर दबाव\n"
-        "दी कॉक खेल रहा है, कोहली फॉर्म में नहीं आ रहा 😤\n"
-        "दक्षिण अफ्रीका ने मैच बराबरी पर ला दिया\n"
-        "क्या इंडिया की बल्लेबाज़ी सिर्फ नाम पर चल रही है?\n"
+        "\n✅ Example:\n"
+        "अमेरिकी सुप्रीम कोर्ट ने ट्रंप की ट्रांस मिलिट्री पॉलिसी को मंजूरी दी\n"
+        "कोर्ट फैसला दे रहा है, सरकार equality पर action नहीं कर रही 😤\n"
+        "ट्रांसजेंडर सैनिक अब सेना में नहीं जा पाएंगे\n"
+        "क्या equality सिर्फ speeches में दिखती है?\n"
     )
 
     user_prompt = (
         f"Topic:\n{core}\n\n"
         "Write EXACTLY 4 lines following the rules.\n"
-        "Line 1: FACT (with name/place/number)\n"
+        "Line 1: Fact\n"
         "Line 2: X कर रहा है, Y नहीं कर रहा है 😤\n"
-        "Line 3: real consequence / impact\n"
-        "Line 4: sarcastic question\n"
+        "Line 3: Real consequence\n"
+        "Line 4: Sarcastic question\n"
     )
 
     out = call_groq(user_prompt, system, temperature=0.65, max_tokens=160)
     if not out:
         return core
 
+    # Clean lines
     text = _clean_lines(out)
 
+    # If model returns in one line – split on sentence end
     if '\n' not in text and len(text) > 80:
-        parts = re.split(r'[।!\?]\s+', text)
+        parts = re.split(r'[।!?]\s+', text)
         parts = [p.strip() for p in parts if p.strip()]
         if len(parts) >= 3:
             text = "\n".join(parts[:4])
 
+    # Clean + enforce rules
     text = _strip_forbidden(text)
     text = _limit_words_per_line(text, max_words=12)
     text = _enforce_line_count(text, min_lines=3, max_lines=4)
-    text = _limit_emojis(text, max_emoji=2)
+    text = _limit_emojis(text, max_emoji=1)
     text = normalize_numbers(detox(text))
 
+    # Ensure Line 2 has at least one 😤 emoji if missing
     if _emoji_count(text) == 0:
         lines = text.split("\n")
         if len(lines) >= 2:
