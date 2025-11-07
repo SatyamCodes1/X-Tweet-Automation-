@@ -240,48 +240,34 @@ def generate_multiline_post(core: str, mode: str) -> str:
     }
     style = style_map.get(mode, FUNNY_STYLE_HI)
 
-system = (
-    "You are a SAVAGE Gen-Z Hindi tweet writer. OUTPUT ONLY 4 LINES. NO EXPLANATION.\n"
-    "\n📌 MANDATORY STRUCTURE:\n"
-    "Line 1: Specific fact — real names, numbers, events (no generic).\n"
-    "Line 2: Contrast with EXACT pattern — '[X] कर रहा है, [Y] नहीं कर रहा है 😤'. Must relate to Line 1.\n"
-    "Line 3: Real consequence or ground impact — budget, public reaction, numbers, loss, disappointment etc.\n"
-    "Line 4: Sharp sarcastic question — must logically follow Lines 1–3.\n"
-    "\n🚫 BANNED:\n"
-    "- No generic lines like 'लोग परेशान हैं', 'यह सही नहीं है'.\n"
-    "- No random emotion shifts or incomplete logic.\n"
-    "- No hashtags, @mentions, quotes, or links inside lines.\n"
-    "- No poetic/philosophical lines — only concrete.\n"
-    "- Only 1 emoji in Line 2. No other lines should have emoji.\n"
-    "\n✅ GOOD EXAMPLE:\n"
-    "दी कॉक ने 98 रन ठोके, इंडिया पर दबाव\n"
-    "दी कॉक खेल रहा है, कोहली फॉर्म में नहीं आ रहा 😤\n"
-    "दक्षिण अफ्रीका ने मैच बराबरी पर ला दिया\n"
-    "क्या इंडिया की बल्लेबाज़ी सिर्फ नाम पर चल रही है?\n"
-    "\n✅ ANOTHER:\n"
-    "बिहार में 64.6% मतदान हुआ\n"
-    "सरकार विकास की बात कर रही है, गांव की सड़क अभी भी टूटी है 😤\n"
-    "महिलाएं पहली बार इतनी संख्या में वोट डाल रही हैं\n"
-    "क्या ये बदलाव का सिग्नल नहीं है?\n"
-    "\n⚡ TONE:\n"
-    "- Savage, realistic, logical sarcasm\n"
-    "- Must make complete sense — no broken sentences\n"
-)
-
+    system = (
+        "You are a SAVAGE Gen-Z Hindi tweet writer. OUTPUT ONLY 4 LINES. NO EXPLANATION.\n"
+        "\n📌 MANDATORY STRUCTURE:\n"
+        "Line 1: Specific fact — real names, numbers, events (no generic).\n"
+        "Line 2: Contrast with EXACT pattern — '[X] कर रहा है, [Y] नहीं कर रहा है 😤'. Must relate to Line 1.\n"
+        "Line 3: Real consequence or ground impact — public reaction, loss, numbers, disappointment.\n"
+        "Line 4: Sharp sarcastic question — must logically follow Lines 1–3.\n"
+        "\n🚫 BANNED:\n"
+        "- No generic lines like 'लोग परेशान हैं' or 'सवाल उठ रहे हैं'.\n"
+        "- No random emotion shifts or incomplete thoughts.\n"
+        "- No hashtags, @mentions, links.\n"
+        "- No poetic/philosophical gyaan.\n"
+        "- Only one emoji (😤) allowed in Line 2.\n"
+        "- Max 12 words per line.\n"
+        "\n✅ GOOD EXAMPLE:\n"
+        "दी कॉक ने 98 रन ठोके, इंडिया पर दबाव\n"
+        "दी कॉक खेल रहा है, कोहली फॉर्म में नहीं आ रहा 😤\n"
+        "दक्षिण अफ्रीका ने मैच बराबरी पर ला दिया\n"
+        "क्या इंडिया की बल्लेबाज़ी सिर्फ नाम पर चल रही है?\n"
+    )
 
     user_prompt = (
-        f"📰 NEWS/TOPIC:\n{core}\n\n"
-        f"Write EXACTLY 4 lines (NO MORE) in this format:\n"
-        f"Line 1: [SPECIFIC FACT] — mention names/numbers\n"
-        f"Line 2: [NAME] कर रहा है, [NAME] नहीं कर रहा है 😤\n"
-        f"Line 3: [REAL CONSEQUENCE]\n"
-        f"Line 4: [SARCASTIC QUESTION]\n\n"
-        f"Example:\n"
-        f"Twinkle Khanna Instagram पर सच्चाई बेच रही है\n"
-        f"Twinkle बोल रही है, Gen-Z सुन रहा है 😅\n"
-        f"पुरानी Hollywood की बातें नई पीढ़ी को fake लगती हैं\n"
-        f"क्या stardom ने सच्चाई देखना ही भूल गया?\n\n"
-        f"Now write 4 lines for: {core}"
+        f"Topic:\n{core}\n\n"
+        "Write EXACTLY 4 lines following the rules.\n"
+        "Line 1: FACT (with name/place/number)\n"
+        "Line 2: X कर रहा है, Y नहीं कर रहा है 😤\n"
+        "Line 3: real consequence / impact\n"
+        "Line 4: sarcastic question\n"
     )
 
     out = call_groq(user_prompt, system, temperature=0.65, max_tokens=160)
@@ -289,28 +275,25 @@ system = (
         return core
 
     text = _clean_lines(out)
-    
-    # If single paragraph, split by sentence markers
-    if "\n" not in text and len(text) > 80:
+
+    if '\n' not in text and len(text) > 80:
         parts = re.split(r'[।!\?]\s+', text)
         parts = [p.strip() for p in parts if p.strip()]
         if len(parts) >= 3:
             text = "\n".join(parts[:4])
 
-    # Sanitize
     text = _strip_forbidden(text)
     text = _limit_words_per_line(text, max_words=12)
     text = _enforce_line_count(text, min_lines=3, max_lines=4)
     text = _limit_emojis(text, max_emoji=2)
     text = normalize_numbers(detox(text))
-    
-    # ✅ Ensure emoji in Line 2
+
     if _emoji_count(text) == 0:
         lines = text.split("\n")
         if len(lines) >= 2:
             lines[1] = lines[1].rstrip() + " 😤"
         text = "\n".join(lines)
-    
+
     return text
 
 # ---------------------- MAIN TWEET FUNCTION -------------------------
